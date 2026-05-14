@@ -110,6 +110,7 @@ fn visit_dirs(dir: &Path, extensions: &[String], output_path: &str) -> io::Resul
 }
 
 fn append_to_output(source_path: &Path, output_path: &str) -> io::Result<()> {
+    // Prevent self-consumption
     if let (Ok(s), Ok(o)) = (fs::canonicalize(source_path), fs::canonicalize(output_path)) {
         if s == o { return Ok(()); }
     }
@@ -120,13 +121,87 @@ fn append_to_output(source_path: &Path, output_path: &str) -> io::Result<()> {
     if source_file.read_to_string(&mut content).is_ok() {
         let mut output_file = OpenOptions::new().append(true).open(output_path)?;
 
-        // Changed FILENAME: to #START_FILE
-        writeln!(output_file, r#"<file path="{}">"#, source_path.display())?;
+        // Extract extension and determine language name
+        let extension = source_path
+            .extension()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+        
+        let language = get_language_name(extension);
+
+        // Updated XML header with language attribute
+        writeln!(
+            output_file, 
+            r#"<file path="{}" language="{}">"#, 
+            source_path.display(), 
+            language
+        )?;
         writeln!(output_file, "{}", content)?;
         writeln!(output_file, "</file>\n")?;
 
-        println!("Appended: {}", source_path.display());
+        println!("Appended: {} (Language: {})", source_path.display(), language);
     }
 
     Ok(())
+}
+
+fn get_language_name(ext: &str) -> &str {
+    match ext.to_lowercase().as_str() {
+        // Logic & Programming Languages
+        "rs" => "rust",
+        "gd" => "godotscript",
+        "lua" => "lua",
+        "cs" => "csharp",
+        "py" => "python",
+        "js" => "javascript",
+        "ts" => "typescript",
+        "cpp" | "cc" | "cxx" | "hpp" | "h" => "cpp",
+        "c" => "c",
+        "go" => "go",
+        "rb" => "ruby",
+        "fs" | "fsi" | "fsx" => "fsharp",
+        "java" => "java",
+        "kt" => "kotlin",
+        "swift" => "swift",
+
+        // Game Engine Specifics & Asset Metadata
+        "tscn" | "tres" | "godot" => "godot-data",
+        "gdshader" => "godot-shader",
+        "unity" | "prefab" | "meta" | "mat" => "unity-data",
+        "uproject" | "uasset" | "umap" => "unreal-data",
+
+        // Graphics & Shaders
+        "glsl" | "vert" | "frag" | "comp" | "geom" => "glsl",
+        "hlsl" | "fx" | "hlsli" => "hlsl",
+        "wgsl" => "wgsl",
+
+        // Build Systems & Infrastructure
+        "makefile" | "make" | "mk" => "makefile",
+        "dockerfile" | "dockerignore" => "dockerfile",
+        "env" => "dotenv",
+        "lock" => "lockfile",
+        "cmake" => "cmake",
+
+        // Shell & Automation
+        "sh" | "bash" => "shell",
+        "ps1" | "psm1" | "psd1" => "powershell",
+        "bat" | "cmd" => "batch",
+
+        // Data & Configuration
+        "toml" => "toml",
+        "json" => "json",
+        "yaml" | "yml" => "yaml",
+        "xml" | "csproj" | "fsproj" => "xml",
+        "ini" | "cfg" | "prefs" => "ini",
+        "csv" => "csv",
+
+        // Documentation & Web
+        "md" | "markdown" => "markdown",
+        "txt" => "text",
+        "html" | "htm" => "html",
+        "css" => "css",
+        "sql" => "sql",
+
+        _ => "text", 
+    }
 }
