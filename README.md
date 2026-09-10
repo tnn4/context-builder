@@ -1,5 +1,7 @@
 Context Builder
 
+This is an AI RAG tool. See: https://aws.amazon.com/what-is/retrieval-augmented-generation/
+
 A high-performance file aggregation pipeline designed to transform a directory of source code into a single, structured text file. This tool is optimized for creating context for Large Language Models (LLMs), code audits, or systemic analysis.
 ### The Architecture
 
